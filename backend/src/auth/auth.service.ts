@@ -76,7 +76,7 @@ export class AuthService {
         return {
             message: 'Đăng nhập thành công',
             access_token: accessToken,
-            refreshToken: refreshToken,
+            refresh_token: refreshToken,
             user: {
                 id: user.id,
                 username: user.username,
@@ -138,10 +138,10 @@ export class AuthService {
         return { message: 'Đăng xuất thành công' };
     }
 
-    async validateUser(uid: string) {
+    async getMe(uid: string) {
         const user = await this.usersService.findOne(uid);
 
-        if (!user) throw new UnauthorizedException('Invalid credentials');
+        if (!user) throw new UnauthorizedException('Không tìm thấy người dùng');
 
         const { password, ...result } = user;
 

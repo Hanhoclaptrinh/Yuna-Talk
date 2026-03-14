@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -72,13 +72,44 @@ export class UsersService {
     });
   }
 
-  // update(id: number, updateUserDto: UpdateUserDto) {
-  //   return `This action updates a #${id} user`;
-  // }
+  async update(id: string, payload: UpdateUserDto) {
+    if (payload.username) {
+      const exUsername = await this.prisma.user.findFirst({
+        where: {
+          username: payload.username,
+          id: { not: id } // loai tru ban than
+        },
+      });
 
-  // remove(id: number) {
-  //   return `This action removes a #${id} user`;
-  // }
+      if (exUsername) throw new ConflictException('Tên người dùng đã được sử dụng');
+    }
+
+    if (payload.email) {
+      const exEmail = await this.prisma.user.findFirst({
+        where: {
+          email: payload.email,
+          id: { not: id } // loai tru ban than
+        },
+      });
+
+      if (exEmail) throw new ConflictException('Email đã được sử dụng');
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: payload
+    });
+  }
+
+  async remove(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+
+    if (!user) throw new NotFoundException('Không tìm thấy tài khoản');
+
+    await this.prisma.user.delete({ where: { id } });
+
+    return { message: 'Xóa tài khoản người dùng thành công' };
+  }
 
   // auth
   async findOne(id: string) {
