@@ -8,6 +8,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { UsersModule } from './users/users.module';
 import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from './redis/redis.module';
+import { ConversationsModule } from './conversations/conversations.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { RedisModule } from './redis/redis.module';
     PrismaModule,
     AuthModule,
     UsersModule,
-    RedisModule],
+    RedisModule,
+    ConversationsModule],
   controllers: [AppController],
   providers: [
     {
