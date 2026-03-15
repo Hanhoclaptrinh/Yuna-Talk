@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from './redis/redis.module';
 import { ConversationsModule } from './conversations/conversations.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { ConversationsModule } from './conversations/conversations.module';
     AuthModule,
     UsersModule,
     RedisModule,
-    ConversationsModule],
+    ConversationsModule,
+    MessagesModule],
   controllers: [AppController],
   providers: [
     {
