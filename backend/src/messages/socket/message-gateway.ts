@@ -2,7 +2,7 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSo
 import { Server, Socket } from "socket.io";
 import { MessagesService } from "../messages.service";
 import { CreateMsgDto } from "../dto/create-msg.dto";
-// import { AuthService } from "src/auth/auth.service";
+import { JwtService } from "@nestjs/jwt";
 import { UsePipes, ValidationPipe } from "@nestjs/common";
 
 @WebSocketGateway(3001, { cors: { origin: true } })
@@ -11,23 +11,29 @@ export class MessageGateway {
 
     constructor(
         private messageService: MessagesService,
-        // private authService: AuthService
+        private jwtService: JwtService
     ) { }
 
-    // async handleConnection(client: Socket) {
-    //     const token = client.handshake.auth.token;
-    //     if (!token) return client.disconnect();
+    async handleConnection(client: Socket) {
+        try {
+            const token = client.handshake.auth.token;
+            if (!token) return client.disconnect();
 
-    //     const user = await this.authService.verifyToken(token);
-    //     client.data.user = user;
-    // }
+            const payload = await this.jwtService.verifyAsync(token, {
+                secret: process.env.JWT_SECRET
+            });
+            client.data.user = { id: payload.sub, username: payload.username, email: payload.email };
+            console.log(`User ${payload.username} đã kết nối qua socket`);
+        } catch (e) {
+            console.error('Lỗi kết nối socket:', e.message);
+            client.disconnect();
+        }
+    }
 
     @SubscribeMessage('join_conversation')
     handleJoinConversation(@ConnectedSocket() client: Socket, @MessageBody() conId: string) {
-        // tham gia vao phong chat
-        // khong tham gia thi khong nhan duoc tin nhan
         client.join(conId);
-        console.log(`socket ${client.id} da connect vao phong ${conId}`);
+        console.log(`Socket ${client.id} đã tham gia phòng ${conId}`);
     }
 
     @UsePipes(new ValidationPipe())
@@ -36,12 +42,13 @@ export class MessageGateway {
         @ConnectedSocket() client: Socket,
         @MessageBody() payload: CreateMsgDto
     ) {
-        const uid = client.data.user.id; // id nguoi gui duoc lay tu jwt
+        if (!client.data.user) {
+            console.error('Lỗi: socket không có thông tin người dùng');
+            return;
+        }
+        const uid = client.data.user.id;
 
-        // save tin nhan vao db
         const saveMsg = await this.messageService.saveMessage(uid, payload);
-
-        // phat tin nhan den toan user trong phong
         this.server.to(payload.conversationId).emit('new_message', saveMsg);
     }
 }

@@ -35,6 +35,25 @@ export class MessagesService {
         });
     }
 
+    async getMessagesByConversation(conId: string, limit = 50) {
+        return await this.prisma.message.findMany({
+            where: { conversationId: conId },
+            take: limit,
+            orderBy: { createdAt: 'asc' }, // tu cu den moi
+            include: {
+                sender: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: true,
+                        status: true
+                    }
+                },
+                replyTo: true
+            }
+        });
+    }
+
     async getUserConversations(uid: string) {
         return await this.prisma.conversationParticipant.findMany({
             where: { userId: uid },
