@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMsgDto } from './dto/create-msg.dto';
 import { MessageType } from '@prisma/client';
@@ -59,5 +59,22 @@ export class MessagesService {
             where: { userId: uid },
             select: { conversationId: true }
         });
+    }
+
+    async revokeMsg(id: string, uid: string) {
+        const msg = await this.prisma.message.findUnique({
+            where: { id }
+        });
+
+        if (msg?.senderId !== uid) throw new ForbiddenException('Chỉ người gửi mới có thể thu hồi tin nhắn');
+
+        return await this.prisma.message.update({
+            where: { id },
+            data: {
+                isRevoked: true,
+                revokedAt: new Date(),
+                content: null
+            }
+        })
     }
 }

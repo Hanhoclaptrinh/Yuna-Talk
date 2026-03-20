@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Setup Frontend Project",
+			"type": "shell",
+			"command": "cd c:\\Users\\Coding\\YunaTalk && npm create vite@latest frontend -- --template react && cd frontend && npm install axios react-router-dom socket.io-client zustand && npm install -D tailwindcss postcss autoprefixer && npx tailwindcss init -p"
+		}
+	]
+}

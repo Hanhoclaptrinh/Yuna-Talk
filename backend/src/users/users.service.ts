@@ -53,12 +53,13 @@ export class UsersService {
   }
 
   async findByIdentity(identity: string) {
-    return await this.prisma.user.findFirst({
+    return await this.prisma.user.findMany({
       where: {
         OR: [
-          { email: identity },
-          { username: identity }
+          { email: { contains: identity } },
+          { username: { contains: identity } }
         ]
+
       },
 
       select: {
@@ -68,9 +69,12 @@ export class UsersService {
         avatar: true,
         bio: true,
         status: true
-      }
+      },
+
+      take: 10
     });
   }
+
 
   async update(id: string, payload: UpdateUserDto) {
     if (payload.username) {

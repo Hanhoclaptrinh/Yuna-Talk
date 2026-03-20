@@ -91,6 +91,9 @@ model Message {
 
   replyToId String?
 
+  isRevoked Boolean @default(false)
+  revokedAt DateTime?
+
   editedAt  DateTime?
   deletedAt DateTime?
 

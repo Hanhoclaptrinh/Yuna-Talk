@@ -21,10 +21,31 @@ import { MessagesModule } from './messages/messages.module';
       throttlers: [
         {
           ttl: 60000,
-          limit: 10
+          limit: 100
         }
       ]
     }),
+
+    // cau hinh throttler cho tung hanh dong
+    // ThrottlerModule.forRoot({
+    //   throttlers: [
+    //     {
+    //       name: 'short', // Chống spam nhanh
+    //       ttl: 1000,     // 1 giây
+    //       limit: 3,      // Tối đa 3 requests/giây
+    //     },
+    //     {
+    //       name: 'medium', // Giới hạn chung cho hoạt động bình thường
+    //       ttl: 60000,    // 1 phút
+    //       limit: 60,     // Tối đa 60 requests/phút
+    //     },
+    //     {
+    //       name: 'auth',   // Riêng cho đăng nhập/đăng ký
+    //       ttl: 3600000,  // 1 giờ
+    //       limit: 20,     // Tối đa 20 lần thử mỗi giờ
+    //     },
+    //   ],
+    // }),
 
     PrismaModule,
     AuthModule,
