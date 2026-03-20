@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMsgDto } from './dto/create-msg.dto';
 import { MessageType } from '@prisma/client';
@@ -35,9 +35,19 @@ export class MessagesService {
         });
     }
 
-    async getMessagesByConversation(conId: string, limit = 50) {
+    async getMessagesByConversation(conId: string, uid: string, limit = 50) {
         return await this.prisma.message.findMany({
-            where: { conversationId: conId },
+            where: {
+                conversationId: conId,
+                NOT: {
+                    statuses: {
+                        some: {
+                            userId: uid,
+                            isDeleted: true
+                        }
+                    }
+                }
+            },
             take: limit,
             orderBy: { createdAt: 'asc' }, // tu cu den moi
             include: {
@@ -49,7 +59,12 @@ export class MessagesService {
                         status: true
                     }
                 },
-                replyTo: true
+                replyTo: true,
+                statuses: {
+                    where: {
+                        userId: uid
+                    }
+                }
             }
         });
     }
@@ -66,15 +81,40 @@ export class MessagesService {
             where: { id }
         });
 
-        if (msg?.senderId !== uid) throw new ForbiddenException('Chỉ người gửi mới có thể thu hồi tin nhắn');
+        if (!msg) throw new NotFoundException('Không tìm thấy tin nhắn');
+        if (msg.senderId !== uid) throw new ForbiddenException('Chỉ người gửi mới có thể thu hồi tin nhắn');
+        if (msg.isRevoked) return msg;
 
         return await this.prisma.message.update({
             where: { id },
             data: {
                 isRevoked: true,
                 revokedAt: new Date(),
-                content: null
+                content: 'Tin nhắn đã bị thu hồi'
             }
         })
+    }
+
+    async deleteMsg(id: string, uid: string) {
+        return await this.prisma.messageStatus.upsert({
+            where: {
+                messageId_userId: {
+                    messageId: id,
+                    userId: uid
+                }
+            },
+
+            update: {
+                isDeleted: true,
+                deletedAt: new Date()
+            },
+
+            create: {
+                messageId: id,
+                userId: uid,
+                isDeleted: true,
+                deletedAt: new Date()
+            }
+        });
     }
 }

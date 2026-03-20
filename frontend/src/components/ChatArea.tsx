@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Send, User, MessageCircle, Phone, Video, Info, MoreVertical, Paperclip, Smile } from 'lucide-react';
+import { Send, User, MessageCircle, Phone, Video, Info, MoreVertical, Paperclip, Smile, Trash2, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -19,7 +20,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const conversation = conversations.find(c => c.id === id);
   const otherParticipant = conversation?.participants.find(p => p.user.id !== user?.id)?.user;
@@ -35,6 +38,16 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
   }, [id, socket]);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     if (socket) {
       const handleNewMessage = (message: Message) => {
         if (message.conversationId === id) {
@@ -42,8 +55,21 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
           scrollToBottom();
         }
       };
+
+      const handleMessageRevoked = (payload: { msgId: string, revokedAt: string }) => {
+        setMessages(prev => prev.map(msg => 
+          msg.id === payload.msgId 
+            ? { ...msg, isRevoked: true, content: 'Tin nhắn đã bị thu hồi' } 
+            : msg
+        ));
+      };
+
       socket.on('new_message', handleNewMessage);
-      return () => { socket.off('new_message', handleNewMessage); };
+      socket.on('message_revoked', handleMessageRevoked);
+      return () => { 
+        socket.off('new_message', handleNewMessage);
+        socket.off('message_revoked', handleMessageRevoked);
+      };
     }
   }, [socket, id]);
 
@@ -74,6 +100,25 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
       type: 'TEXT'
     });
     setText('');
+    setShowEmojiPicker(false);
+  };
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setText(prev => prev + emojiData.emoji);
+  };
+
+  const handleRevoke = (msgId: string) => {
+    if (!socket || !id) return;
+    socket.emit('revoke_message', { msgId, conId: id });
+  };
+
+  const handleDelete = async (msgId: string) => {
+    try {
+      await api.delete(`/messages/${msgId}`);
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+    } catch (err) {
+      console.error('Lỗi khi xóa tin nhắn:', err);
+    }
   };
 
   if (!id) return (
@@ -119,6 +164,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
         ) : (
           messages.map((msg, idx) => {
             const isMine = msg.senderId === user?.id;
+            const isRevoked = msg.isRevoked;
+            
             return (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
@@ -126,12 +173,46 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
                 key={msg.id}
                 className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
               >
-                <div className={`${isMine ? 'chat-bubble-mine' : 'chat-bubble-theirs'} relative group`}>
-                   <p className="text-[14px] leading-relaxed py-0.5">{msg.content}</p>
-                   {/* Tooltip for time */}
-                   <span className="absolute bottom-[-20px] left-0 text-[9px] text-slate-500 uppercase font-black opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                     12:30 PM
-                   </span>
+                <div className="flex items-center gap-2 group max-w-[85%]">
+                  {isMine && !isRevoked && (
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity order-1">
+                      <button 
+                        onClick={() => handleRevoke(msg.id)}
+                        className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
+                        title="Thu hồi"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(msg.id)}
+                        className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                        title="Xóa phía tôi"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className={`relative ${isMine ? 'chat-bubble-mine order-2' : 'chat-bubble-theirs order-1'} ${isRevoked ? 'opacity-50 italic' : ''}`}>
+                    <p className="text-[14px] leading-relaxed py-0.5">
+                      {isRevoked ? (isMine ? 'Bạn đã thu hồi tin nhắn' : 'Tin nhắn đã được thu hồi') : msg.content}
+                    </p>
+                    <span className={`absolute bottom-[-20px] ${isMine ? 'right-0' : 'left-0'} text-[9px] text-slate-500 uppercase font-black opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap`}>
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+
+                  {!isMine && !isRevoked && (
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center transition-opacity order-2">
+                      <button 
+                        onClick={() => handleDelete(msg.id)}
+                        className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                        title="Xóa phía tôi"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );
@@ -142,7 +223,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
 
       {/* Message Input */}
       <div className="p-6 bg-slate-900/30 border-t border-slate-800/50">
-        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-end gap-3 glass p-1.5 rounded-2xl border-slate-700/30">
+        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-end gap-3 glass p-1.5 rounded-2xl border-slate-700/30 relative">
           <button type="button" className="p-3 text-slate-400 hover:text-primary-400 flex-shrink-0 transition-colors"><Paperclip className="w-5 h-5" /></button>
           <textarea
             rows={1}
@@ -157,7 +238,33 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
               }
             }}
           />
-          <button type="button" className="p-3 text-slate-400 hover:text-primary-400 flex-shrink-0 transition-colors"><Smile className="w-5 h-5" /></button>
+          <div className="relative" ref={pickerRef}>
+            <button 
+              type="button" 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={`p-3 transition-colors ${showEmojiPicker ? 'text-primary-400' : 'text-slate-400 hover:text-primary-400'}`}
+            >
+              <Smile className="w-5 h-5" />
+            </button>
+            <AnimatePresence>
+              {showEmojiPicker && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute bottom-full right-0 mb-4 z-50 shadow-2xl"
+                >
+                  <EmojiPicker 
+                    theme={Theme.DARK}
+                    onEmojiClick={handleEmojiClick}
+                    lazyLoadEmojis={true}
+                    width={320}
+                    height={400}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <button
             type="submit"
             disabled={!text.trim()}

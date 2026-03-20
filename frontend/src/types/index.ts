@@ -25,6 +25,8 @@ export interface Message {
   sender: User;
   conversationId: string;
   createdAt: string;
+  isRevoked?: boolean;
+  revokedAt?: string;
 }
 
 export interface AuthResponse {

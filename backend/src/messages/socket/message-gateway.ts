@@ -30,6 +30,18 @@ export class MessageGateway {
         }
     }
 
+    async handleDisconnect(client: Socket) {
+        try {
+            const user = client.data.user;
+
+            if (user) {
+                console.log(`User ${user.username} (ID: ${user.id}) đã thoát.`);
+            }
+        } catch (e) {
+            console.error('Lỗi ngắt kết nối socket:', e.message);
+        }
+    }
+
     @SubscribeMessage('join_conversation')
     handleJoinConversation(@ConnectedSocket() client: Socket, @MessageBody() conId: string) {
         client.join(conId);
@@ -50,5 +62,26 @@ export class MessageGateway {
 
         const saveMsg = await this.messageService.saveMessage(uid, payload);
         this.server.to(payload.conversationId).emit('new_message', saveMsg);
+    }
+
+    @SubscribeMessage('revoke_message')
+    async handleRevokeMessage(
+        @ConnectedSocket() client: Socket,
+        @MessageBody() payload: { msgId: string, conId: string }
+    ) {
+        try {
+            const uid = client.data.user?.id;
+            if (!uid) return;
+
+            const revokedMsg = await this.messageService.revokeMsg(payload.msgId, uid);
+            if (revokedMsg) {
+                this.server.to(payload.conId).emit('message_revoked', {
+                    msgId: payload.msgId,
+                    revokedAt: revokedMsg.revokedAt
+                })
+            }
+        } catch (e) {
+            client.emit('error', { message: e.message })
+        }
     }
 }

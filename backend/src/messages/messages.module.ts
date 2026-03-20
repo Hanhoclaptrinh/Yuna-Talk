@@ -5,6 +5,7 @@ import { MessageGateway } from './socket/message-gateway';
 
 @Module({
   providers: [MessagesService, MessageGateway],
-  controllers: [MessagesController]
+  controllers: [MessagesController],
+  exports: [MessagesService]
 })
 export class MessagesModule { }

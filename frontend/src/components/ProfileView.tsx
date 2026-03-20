@@ -20,6 +20,8 @@ const ProfileView: React.FC = () => {
   });
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +61,30 @@ const ProfileView: React.FC = () => {
     }
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadingAvatar(true);
+    try {
+      const res = await api.patch('/users/me/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      updateUser(res.data);
+      setMsg({ type: 'success', text: 'Cập nhật ảnh đại diện thành công!' });
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err.response?.data?.message || 'Lỗi khi tải ảnh lên.' });
+    } finally {
+      setUploadingAvatar(false);
+      setTimeout(() => setMsg({ type: '', text: '' }), 3000);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-slate-900/10 p-10 overflow-y-auto relative animate-fade-in">
        <div className="absolute top-10 right-10 w-[500px] h-[500px] bg-accent-600/5 rounded-full blur-[120px] -z-10" />
@@ -82,11 +108,29 @@ const ProfileView: React.FC = () => {
             <div className="md:col-span-1 space-y-8">
                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass p-8 rounded-[40px] flex flex-col items-center border border-slate-700/50 shadow-2xl">
                   <div className="relative mb-6">
-                    <div className="w-40 h-40 bg-slate-700 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 drop-shadow-2xl">
-                      {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <UserCircle className="w-full h-full text-slate-500 p-4" />}
+                    <div className="w-40 h-40 bg-slate-700 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 drop-shadow-2xl flex items-center justify-center">
+                      {uploadingAvatar ? (
+                        <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+                      ) : user?.avatar ? (
+                        <img src={user.avatar} className="w-full h-full object-cover" />
+                      ) : (
+                        <UserCircle className="w-full h-full text-slate-500 p-4" />
+                      )}
                     </div>
-                    <button className="absolute -bottom-3 -right-3 p-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl shadow-xl transition-all active:scale-90 border-4 border-slate-900">
-                      <Camera className="w-5 h-5" />
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleAvatarChange} 
+                      className="hidden" 
+                      accept="image/*"
+                    />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      type="button"
+                      className="absolute -bottom-3 -right-3 p-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl shadow-xl transition-all active:scale-90 border-4 border-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Camera className={`w-5 h-5 ${uploadingAvatar ? 'animate-pulse' : ''}`} />
                     </button>
                   </div>
                   <h3 className="text-2xl font-black text-white px-2 text-center uppercase tracking-tight">{user?.username}</h3>

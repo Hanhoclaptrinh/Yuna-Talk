@@ -120,7 +120,9 @@ model MessageStatus {
   messageId String
   userId    String
 
-  seenAt DateTime?
+  seenAt    DateTime?
+  isDeleted Boolean   @default(false) // xoa mot chieu
+  deletedAt DateTime?
 
   message Message @relation(fields: [messageId], references: [id])
   user    User    @relation(fields: [userId], references: [id])

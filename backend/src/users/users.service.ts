@@ -138,6 +138,14 @@ export class UsersService {
     });
   }
 
+  async updateAvatar(id: string, avatarUrl: string) {
+    return await this.prisma.user.update({
+      where: { id },
+      data: { avatar: avatarUrl },
+      select: { id: true, username: true, avatar: true }
+    });
+  }
+
   async updatePassword(id: string, newPass: string) {
     await this.prisma.user.update({
       where: { id },
