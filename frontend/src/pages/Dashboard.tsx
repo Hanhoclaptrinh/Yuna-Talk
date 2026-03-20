@@ -50,7 +50,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex bg-[#0f172a] text-slate-200 overflow-hidden">
+    <div className="h-screen flex overflow-hidden transition-colors duration-300">
       {/* Mini Sidebar */}
       <Sidebar onLogout={logout} user={user} />
 

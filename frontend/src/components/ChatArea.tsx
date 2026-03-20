@@ -5,6 +5,7 @@ import { Send, User, MessageCircle, Phone, Video, Info, MoreVertical, Paperclip,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
+import { useTheme } from '../context/ThemeContext';
 import api from '../api/api';
 import { Message, Conversation } from '../types';
 
@@ -17,6 +18,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { socket } = useSocket();
+  const { theme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -122,7 +124,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
   };
 
   if (!id) return (
-    <div className="flex-1 flex flex-col items-center justify-center text-slate-500 bg-slate-900/10">
+    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 transition-colors duration-300">
       <MessageCircle className="w-20 h-20 mb-6 opacity-10 animate-float" />
       <h3 className="text-xl font-medium">Bắt đầu trò chuyện ngay</h3>
       <p className="max-w-xs text-center text-sm mt-2 opacity-60">Chọn một cuộc hội thoại từ danh sách hoặc tìm kiếm bạn bè của bạn.</p>
@@ -130,18 +132,18 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-900/10">
+    <div className="flex-1 flex flex-col h-full transition-colors duration-300">
       {/* Chat Header */}
-      <header className="h-20 border-b border-slate-800/50 flex items-center justify-between px-6 bg-slate-900/30 backdrop-blur-md z-10">
+      <header className="h-20 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between px-6 bg-white/80 dark:bg-slate-900/30 backdrop-blur-md z-10">
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center overflow-hidden">
                {otherParticipant?.avatar ? <img src={otherParticipant.avatar} className="w-full h-full object-cover" /> : <span className="text-lg font-bold text-white uppercase">{chatName.charAt(0)}</span>}
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[3px] border-slate-900" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[3px] border-white dark:border-slate-900" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white tracking-tight leading-none mb-1">{chatName}</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight leading-none mb-1">{chatName}</h3>
             <p className="text-xs text-green-500/80 font-semibold tracking-wide flex items-center gap-1.5 uppercase">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block animate-pulse" />
               Đang hoạt động
@@ -149,14 +151,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
           </div>
         </div>
         <div className="flex items-center gap-4 text-slate-400">
-           <button className="p-2.5 rounded-xl hover:bg-slate-800/50 hover:text-primary-400 transition-all active:scale-90"><Phone className="w-5 h-5" /></button>
-           <button className="p-2.5 rounded-xl hover:bg-slate-800/50 hover:text-primary-400 transition-all active:scale-90"><Video className="w-5 h-5" /></button>
-           <button className="p-2.5 rounded-xl hover:bg-slate-800/50 hover:text-primary-400 border border-transparent transition-all active:scale-90"><Info className="w-5 h-5" /></button>
+           <button className="p-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800/50 hover:text-primary-600 dark:hover:text-primary-400 transition-all active:scale-90"><Phone className="w-5 h-5" /></button>
+           <button className="p-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800/50 hover:text-primary-600 dark:hover:text-primary-400 transition-all active:scale-90"><Video className="w-5 h-5" /></button>
+           <button className="p-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800/50 hover:text-primary-600 dark:hover:text-primary-400 border border-transparent transition-all active:scale-90"><Info className="w-5 h-5" /></button>
         </div>
       </header>
 
       {/* Messages View */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-8 h-8 border-3 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
@@ -222,12 +224,12 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
       </div>
 
       {/* Message Input */}
-      <div className="p-6 bg-slate-900/30 border-t border-slate-800/50">
-        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-end gap-3 glass p-1.5 rounded-2xl border-slate-700/30 relative">
-          <button type="button" className="p-3 text-slate-400 hover:text-primary-400 flex-shrink-0 transition-colors"><Paperclip className="w-5 h-5" /></button>
+      <div className="p-6 bg-white/50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-800/50">
+        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-end gap-3 glass p-1.5 rounded-2xl relative">
+          <button type="button" className="p-3 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 flex-shrink-0 transition-colors"><Paperclip className="w-5 h-5" /></button>
           <textarea
             rows={1}
-            className="flex-1 bg-transparent border-none focus:ring-0 outline-none py-3 px-1 text-sm text-slate-200 resize-none min-h-[44px] max-h-[120px] placeholder:text-slate-500"
+            className="flex-1 bg-transparent border-none focus:ring-0 outline-none py-3 px-1 text-sm text-slate-700 dark:text-slate-200 resize-none min-h-[44px] max-h-[120px] placeholder:text-slate-400 dark:placeholder:text-slate-500"
             placeholder="Viết lời nhắn gửi yêu thương..."
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -242,7 +244,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
             <button 
               type="button" 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={`p-3 transition-colors ${showEmojiPicker ? 'text-primary-400' : 'text-slate-400 hover:text-primary-400'}`}
+              className={`p-3 transition-colors ${showEmojiPicker ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-primary-600 dark:hover:text-primary-400'}`}
             >
               <Smile className="w-5 h-5" />
             </button>
@@ -255,7 +257,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
                   className="absolute bottom-full right-0 mb-4 z-50 shadow-2xl"
                 >
                   <EmojiPicker 
-                    theme={Theme.DARK}
+                    theme={theme === 'dark' ? Theme.DARK : Theme.LIGHT}
                     onEmojiClick={handleEmojiClick}
                     lazyLoadEmojis={true}
                     width={320}
