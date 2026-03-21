@@ -92,7 +92,11 @@ const ChatList: React.FC<ChatListProps> = ({ conversations, loading, refreshConv
                     )}
                   </div>
                   {/* Status Indicator */}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[3px] border-slate-950" />
+                  {!convo.isGroup && (
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-[3px] border-slate-950 shadow-sm ${
+                      otherParticipant?.status === 'ONLINE' ? 'bg-emerald-500' : 'bg-slate-500'
+                    }`} />
+                  )}
                 </div>
                 
                 <div className="flex-1 min-w-0">

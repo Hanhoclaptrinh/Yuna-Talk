@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Status } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -150,6 +151,13 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id },
       data: { password: newPass }
+    })
+  }
+
+  async updateStatus(id: string, status: Status) {
+    await this.prisma.user.update({
+      where: { id },
+      data: { status }
     })
   }
 }

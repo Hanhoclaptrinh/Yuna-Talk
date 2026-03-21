@@ -4,13 +4,17 @@ import { MessagesService } from "../messages.service";
 import { CreateMsgDto } from "../dto/create-msg.dto";
 import { JwtService } from "@nestjs/jwt";
 import { UsePipes, ValidationPipe } from "@nestjs/common";
+import { UsersService } from "src/users/users.service";
+import { Status } from "@prisma/client";
 
 @WebSocketGateway(3001, { cors: { origin: true } })
 export class MessageGateway {
     @WebSocketServer() server: Server;
+    private userConnections = new Map<string, number>();
 
     constructor(
         private messageService: MessagesService,
+        private usersService: UsersService,
         private jwtService: JwtService
     ) { }
 
@@ -22,8 +26,18 @@ export class MessageGateway {
             const payload = await this.jwtService.verifyAsync(token, {
                 secret: process.env.JWT_SECRET
             });
-            client.data.user = { id: payload.sub, username: payload.username, email: payload.email };
-            console.log(`User ${payload.username} đã kết nối qua socket`);
+            const userId = payload.sub;
+            client.data.user = { id: userId, username: payload.username, email: payload.email };
+
+            const currentCount = this.userConnections.get(userId) || 0;
+            this.userConnections.set(userId, currentCount + 1);
+
+            console.log(`User ${payload.username} đã kết nối qua socket (${currentCount + 1})`);
+
+            if (currentCount === 0) {
+                await this.usersService.updateStatus(userId, Status.ONLINE);
+                this.server.emit('status_changed', { userId, status: Status.ONLINE });
+            }
         } catch (e) {
             console.error('Lỗi kết nối socket:', e.message);
             client.disconnect();
@@ -35,7 +49,18 @@ export class MessageGateway {
             const user = client.data.user;
 
             if (user) {
-                console.log(`User ${user.username} (ID: ${user.id}) đã thoát.`);
+                const userId = user.id;
+                const currentCount = this.userConnections.get(userId) || 1;
+
+                if (currentCount <= 1) {
+                    this.userConnections.delete(userId);
+                    await this.usersService.updateStatus(userId, Status.OFFLINE);
+                    this.server.emit('status_changed', { userId, status: Status.OFFLINE });
+                    console.log(`User ${user.username} đã OFFLINE`);
+                } else {
+                    this.userConnections.set(userId, currentCount - 1);
+                    console.log(`User ${user.username} đã offline (${currentCount - 1})`);
+                }
             }
         } catch (e) {
             console.error('Lỗi ngắt kết nối socket:', e.message);

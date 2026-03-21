@@ -17,6 +17,11 @@ enum Role {
   MEMBER
 }
 
+enum SystemRole {
+  SUPER_ADMIN
+  USER
+}
+
 enum MessageType {
   TEXT
   IMAGE
@@ -33,6 +38,7 @@ model User {
   avatar   String?
   status   Status  @default(OFFLINE)
   bio      String?
+  role  SystemRole @default(USER)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

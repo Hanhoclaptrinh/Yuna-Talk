@@ -62,5 +62,6 @@ import { MessagesModule } from './messages/messages.module';
 
     AppService
   ],
+  exports: [AppService]
 })
 export class AppModule { }

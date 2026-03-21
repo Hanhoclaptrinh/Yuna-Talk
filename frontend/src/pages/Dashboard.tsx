@@ -27,21 +27,60 @@ const Dashboard: React.FC = () => {
           const updated = [...prev];
           const conIndex = updated.findIndex(c => c.id === message.conversationId);
           if (conIndex > -1) {
-            const con = updated.splice(conIndex, 1)[0];
+            const con = { ...updated[conIndex] };
             con.messages = [message, ...(con.messages || [])];
+            updated.splice(conIndex, 1);
             return [con, ...updated];
           }
           return prev;
         });
       });
-      return () => { socket.off('new_message'); };
+
+      socket.on('status_changed', ({ userId, status }) => {
+        console.log(`Status change: ${userId} is now ${status}`);
+        setConversations(prev => {
+          const newConvs = prev.map(con => ({
+            ...con,
+            participants: con.participants.map(p => 
+              p.user.id === userId ? { ...p, user: { ...p.user, status } } : p
+            )
+          }));
+          return newConvs;
+        });
+      });
+
+      return () => { 
+        socket.off('new_message'); 
+        socket.off('status_changed');
+      };
     }
   }, [socket]);
 
   const fetchConversations = async () => {
     try {
       const res = await api.get('/conversations/my-convos');
-      setConversations(res.data);
+      const apiConvos: Conversation[] = res.data;
+      
+      setConversations(prev => {
+        // Nếu đã có dữ liệu trước đó (và có thể đã được socket cập nhật)
+        // Chúng ta sẽ giữ lại các trạng thái ONLINE hiện tại
+        return apiConvos.map(newCon => {
+          const oldCon = prev.find(p => p.id === newCon.id);
+          if (!oldCon) return newCon;
+          
+          return {
+            ...newCon,
+            participants: newCon.participants.map(p => {
+              const oldP = oldCon.participants.find(op => op.user.id === p.user.id);
+              // Nếu socket đã báo online nhưng API báo offline, ta tin socket
+              if (oldP?.user.status === 'ONLINE' && p.user.status !== 'ONLINE') {
+                return { ...p, user: { ...p.user, status: 'ONLINE' } };
+              }
+              return p;
+            })
+          };
+        });
+      });
     } catch (err) {
       console.error(err);
     } finally {

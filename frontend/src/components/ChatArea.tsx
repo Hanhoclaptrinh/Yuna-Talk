@@ -140,14 +140,27 @@ const ChatArea: React.FC<ChatAreaProps> = ({ conversations, setConversations }) 
             <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center overflow-hidden">
                {otherParticipant?.avatar ? <img src={otherParticipant.avatar} className="w-full h-full object-cover" /> : <span className="text-lg font-bold text-white uppercase">{chatName.charAt(0)}</span>}
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-[3px] border-white dark:border-slate-900" />
+            {!conversation?.isGroup && (
+              <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-[3px] border-white dark:border-slate-900 shadow-sm ${
+                otherParticipant?.status === 'ONLINE' ? 'bg-emerald-500' : 'bg-slate-500'
+              }`} />
+            )}
           </div>
           <div>
             <h3 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight leading-none mb-1">{chatName}</h3>
-            <p className="text-xs text-green-500/80 font-semibold tracking-wide flex items-center gap-1.5 uppercase">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block animate-pulse" />
-              Đang hoạt động
-            </p>
+            {!conversation?.isGroup && (
+              <p className={`text-xs font-semibold tracking-wide flex items-center gap-1.5 uppercase ${
+                otherParticipant?.status === 'ONLINE' ? 'text-emerald-500' : 'text-slate-500'
+              }`}>
+                {otherParticipant?.status === 'ONLINE' && <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block animate-pulse" />}
+                {otherParticipant?.status === 'ONLINE' ? 'Đang hoạt động' : 'Ngoại tuyến'}
+              </p>
+            )}
+            {conversation?.isGroup && (
+              <p className="text-xs text-slate-500 font-medium lowercase">
+                {conversation.participants.length} thành viên
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4 text-slate-400">
