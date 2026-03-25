@@ -16,6 +16,13 @@ export class MessagesService {
                     conversationId: payload.conversationId,
                     senderId: uid,
                     replyToId: payload.replyToId,
+                    // Add file information if present
+                    ...(payload.fileUrl && {
+                        fileUrl: payload.fileUrl,
+                        filePublicId: payload.filePublicId,
+                        fileSize: payload.fileSize,
+                        fileDuration: payload.fileDuration
+                    })
                 },
 
                 include: {

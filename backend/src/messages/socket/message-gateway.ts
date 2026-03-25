@@ -11,6 +11,7 @@ import { Status } from "@prisma/client";
 export class MessageGateway {
     @WebSocketServer() server: Server;
     private userConnections = new Map<string, number>();
+    private userOfflineTimers = new Map<string, NodeJS.Timeout>();
 
     constructor(
         private messageService: MessagesService,
@@ -34,6 +35,13 @@ export class MessageGateway {
 
             console.log(`User ${payload.username} đã kết nối qua socket (${currentCount + 1})`);
 
+            // If user reconnects, cancel the offline timer
+            if (this.userOfflineTimers.has(userId)) {
+                clearTimeout(this.userOfflineTimers.get(userId));
+                this.userOfflineTimers.delete(userId);
+                console.log(`Cancelled offline timer for user ${userId}`);
+            }
+
             if (currentCount === 0) {
                 await this.usersService.updateStatus(userId, Status.ONLINE);
                 this.server.emit('status_changed', { userId, status: Status.ONLINE });
@@ -54,12 +62,24 @@ export class MessageGateway {
 
                 if (currentCount <= 1) {
                     this.userConnections.delete(userId);
-                    await this.usersService.updateStatus(userId, Status.OFFLINE);
-                    this.server.emit('status_changed', { userId, status: Status.OFFLINE });
-                    console.log(`User ${user.username} đã OFFLINE`);
+                    // Set a timer to delay setting offline status
+                    // This allows the user to reconnect without status flicker
+                    const timer = setTimeout(async () => {
+                        try {
+                            await this.usersService.updateStatus(userId, Status.OFFLINE);
+                            this.server.emit('status_changed', { userId, status: Status.OFFLINE });
+                            console.log(`User ${user.username} đã OFFLINE sau 5 giây`);
+                        } catch (e) {
+                            console.error('Lỗi update status offline:', e.message);
+                        }
+                        this.userOfflineTimers.delete(userId);
+                    }, 5000); // 5 second delay
+
+                    this.userOfflineTimers.set(userId, timer);
+                    console.log(`User ${user.username} bắt đầu timer offline (${currentCount - 1} connections)`);
                 } else {
                     this.userConnections.set(userId, currentCount - 1);
-                    console.log(`User ${user.username} đã offline (${currentCount - 1})`);
+                    console.log(`User ${user.username} vẫn còn kết nối (${currentCount - 1} connections remaining)`);
                 }
             }
         } catch (e) {

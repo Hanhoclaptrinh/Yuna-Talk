@@ -22,12 +22,18 @@ export interface Conversation {
 export interface Message {
   id: string;
   content: string;
+  type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'FILE' | 'AUDIO';
   senderId: string;
   sender: User;
   conversationId: string;
   createdAt: string;
   isRevoked?: boolean;
   revokedAt?: string;
+  // File fields
+  fileUrl?: string;
+  filePublicId?: string;
+  fileSize?: string;
+  fileDuration?: string;
 }
 
 export interface AuthResponse {
@@ -35,3 +41,4 @@ export interface AuthResponse {
   refreshToken: string;
   user: User;
 }
+
